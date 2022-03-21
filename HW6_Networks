@@ -1,0 +1,168 @@
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import torchvision
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+from torchvision.datasets import FashionMNIST
+import matplotlib.pyplot as plt
+
+# Feel free to import other packages, if needed.
+# As long as they are supported by CSL machines.
+
+
+def get_data_loader(training = True):
+
+    custom_transform= transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))])
+
+    train_set=datasets.FashionMNIST('./data',train=True,
+                download=True,transform=custom_transform)
+    test_set=datasets.FashionMNIST('./data', train=False,
+                transform=custom_transform)
+
+    if training == True:
+        train_loader = DataLoader(train_set, batch_size=64, shuffle=False, sampler=None,
+                                  batch_sampler=None, num_workers=0, collate_fn=None,
+                                  pin_memory=False, drop_last=False, timeout=0,
+                                  worker_init_fn=None, prefetch_factor=2,
+                                  persistent_workers=False)
+        return train_loader
+
+    if training == False:
+        test_loader = DataLoader(test_set, batch_size=64, shuffle=False, sampler=None,
+                                 batch_sampler=None, num_workers=0, collate_fn=None,
+                                 pin_memory=False, drop_last=False, timeout=0,
+                                 worker_init_fn=None, prefetch_factor=2,
+                                 persistent_workers=False)
+        return test_loader
+
+    return
+
+
+
+def build_model():
+    model = nn.Sequential(nn.Flatten(), nn.Linear(784, 128),
+                          nn.ReLU(), nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 10))
+    return model
+
+
+
+
+def train_model(model, train_loader, criterion, T):
+    opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    for epoch in range(T):  # loop over the dataset multiple times
+
+        correct = 0
+        total = len(train_loader.dataset)
+        running_loss = 0.0
+
+        model.train()
+
+        for i, data in enumerate(train_loader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data
+
+            # zero the parameter gradients
+            opt.zero_grad()
+
+            # forward + backward + optimize
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            opt.step()
+            pred = outputs.argmax(dim=1, keepdim=True)
+            # print statistics
+            running_loss += loss.item() * 50
+            #total = len(train_loader)
+            correct += pred.eq(labels.view_as(pred)).sum().item()
+
+            ack = 100. * correct / total
+
+            #if i % 500 == 499:  # print every 2000 mini-batches
+        print(f'Train Epoch: {epoch}  Accuracy: {correct}/{total}({ack}%)  Loss: {running_loss / total:.3f}')
+
+    return
+    
+
+
+def evaluate_model(model, test_loader, criterion, show_loss = True):
+    model.eval()
+
+    eloss = []
+    eack = []
+    running_loss = 0
+    correct = 0
+    total = len(test_loader.dataset)
+
+    with torch.no_grad():
+        for data, labels in test_loader:
+            output = model(data)
+            loss = criterion(output, labels)
+            running_loss += loss.item()
+
+            pred = output.argmax(dim=1, keepdim=True)
+
+            correct += pred.eq(labels.view_as(pred)).sum().item()
+
+    test_loss = running_loss / len(test_loader.dataset)
+    ack = 100. * correct / total
+
+    eloss.append(test_loss)
+    eack.append(ack)
+    if show_loss == False:
+        print(f'Accuracy: {ack}%')
+    else:
+        print(f'Average Loss: {test_loss}%')
+        print(f'Accuracy: {ack}%')
+
+
+    return
+    
+
+
+def predict_label(model, test_images, index):
+    features, labels = next(iter(test_images))
+    output = model(features[index])
+
+    # print(output)
+
+    # img = features[index].squeeze()
+    # plt.imshow(img, cmap = 'gray')
+    # plt.show()
+
+    prob = F.softmax(output, dim=1)
+
+    class_names = ['T - shirt / top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt'
+        , 'Sneaker', 'Bag', 'Ankle Boot']
+
+    prob = prob.detach_().numpy()
+    # print(prob)
+    ind = prob.argsort()[-3:][::-1]
+    flat_ind = ind.flatten()
+    flat_ind = flat_ind[::-1]
+
+    prob = prob.flatten()
+
+    # print(flat_ind[0:3])
+
+    print(class_names[flat_ind[0]] + ": " + str(prob[flat_ind[0]]) + "%")
+    print(class_names[flat_ind[1]] + ": " + str(prob[flat_ind[1]]) + "%")
+    print(class_names[flat_ind[2]] + ": " + str(prob[flat_ind[2]]) + "%")
+
+    return
+
+
+if __name__ == '__main__':
+    criterion = nn.CrossEntropyLoss()
+    """
+    train_loader = get_data_loader()
+    test_loader = get_data_loader(False)
+    model = build_model()
+    print(model)
+    train_model(model, train_loader, criterion, T=5)
+    evaluate_model(model, test_loader, criterion, show_loss=True)
+    predict_label(model, test_loader, index=5)"""
