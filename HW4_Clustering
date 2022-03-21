@@ -1,0 +1,84 @@
+import csv
+import numpy as np
+from scipy.cluster import hierarchy
+import matplotlib.pyplot as plt
+
+
+def load_data(filepath):
+    Pokedex = []
+    poke_data = csv.DictReader(open(filepath))
+    for poke in poke_data:
+        Pokedex.append(poke)
+    return Pokedex
+
+def calc_features(row):
+    poke = []
+    poke.append(row.get("Attack"))
+    poke.append(row.get("Sp. Atk"))
+    poke.append(row.get("Speed"))
+    poke.append(row.get("Defense"))
+    poke.append(row.get("Sp. Def"))
+    poke.append(row.get("HP"))
+    poke_array = np.array(poke, dtype="int64")
+    return poke_array
+
+def hac(features):
+    n = len(features)
+
+    mat = []
+
+    poke = {i: [features[i]] for i in range(len(features))}
+    d = np.zeros((2*len(features) - 1, 2 * len(features) - 1))
+
+
+    for i in range(n):
+        for j in range(n):
+            d[i,j] = np.linalg.norm(features[i] - features[j])
+
+
+
+    for k in range(0, n-1):
+        i_best = 0
+        j_best = 0
+        d_best = np.inf
+        for i in poke:
+            for j in poke:
+                if d[i,j] < d_best and i < j:
+                    i_best = i
+                    j_best = j
+                    d_best = d[i,j]
+
+                elif d[i,j] == d_best and i == i_best:
+                    j_best = min(j_best, j)
+
+                elif d[i,j] == d_best and i < i_best:
+                    j_best = j
+
+        i,j = i_best, j_best
+        temp = []
+        temp.append(i)
+        temp.append(j)
+        temp.append(d[i,j])
+        temp.append(len(poke[i]) + len(poke[j]))
+        mat.append(temp)
+        poke[n+k] = poke[i] + poke[j]
+        del poke[i]
+        del poke[j]
+
+        for a in poke:
+            d[a, n+k] = max(d[a, i], d[a, j])
+            d[n+k, a] = max(d[a, i], d[a, j])
+
+    return np.array(mat)
+
+
+
+def imshow_hac(Z):
+    Z = np.array(Z, dtype = "double")
+    dn = hierarchy.dendrogram(Z)
+    plt.show()
+
+if __name__=="__main__":
+    #print(load_data('hw4/Pokemon.csv')[:2])
+    hac([calc_features(row) for row in load_data('hw4/Pokemon.csv')][:18])
+    imshow_hac(hac([calc_features(row) for row in load_data('hw4/Pokemon.csv')][:18]))
