@@ -1,0 +1,105 @@
+import sys
+import math
+from math import e
+import string
+
+
+
+def get_parameter_vectors():
+    '''
+    This function parses e.txt and s.txt to get the  26-dimensional multinomial
+    parameter vector (characters probabilities of English and Spanish) as
+    descibed in section 1.2 of the writeup
+
+    Returns: tuple of vectors e and s
+    '''
+    #Implementing vectors e,s as lists (arrays) of length 26
+    #with p[0] being the probability of 'A' and so on
+    e=[0]*26
+    s=[0]*26
+
+    with open('e.txt',encoding='utf-8') as f:
+        for line in f:
+            #strip: removes the newline character
+            #split: split the string on space character
+            char,prob=line.strip().split(" ")
+            #ord('E') gives the ASCII (integer) value of character 'E'
+            #we then subtract it from 'A' to give array index
+            #This way 'A' gets index 0 and 'Z' gets index 25.
+            e[ord(char)-ord('A')]=float(prob)
+    f.close()
+
+    with open('s.txt',encoding='utf-8') as f:
+        for line in f:
+            char,prob=line.strip().split(" ")
+            s[ord(char)-ord('A')]=float(prob)
+    f.close()
+
+    return (e,s)
+
+def shred(filename):
+    #Using a dictionary here. You may change this to any data structure of
+    #your choice such as lists (X=[]) etc. for the assignment
+    X = dict.fromkeys(string.ascii_uppercase, 0)
+    with open (filename,encoding='utf-8') as f:
+
+        for i in f:
+            for j in i:
+                if j.upper() in X.keys():
+                    X[j.upper()] += 1
+                else:
+                    continue
+
+    return X
+
+
+
+# TODO: add your code here for the assignment
+
+file = sys.argv[1]
+print("Q1")
+X = shred(file)
+for (k,v) in shred(file).items():
+    print(k,v)
+print("Q2")
+e,s = get_parameter_vectors()
+X_items = next(iter(X.items()))[1]
+log_e = math.log(e[0])
+log_s = math.log(s[0])
+print('{:.4f}'.format((X_items*log_e), 4))
+print('{:.4f}'.format((X_items*log_s), 4))
+print("Q3")
+P_ye = 0.6
+P_ys = 0.4
+X_items_all = []
+for i in X.values():
+    X_items_all.append(i)
+
+comb_e = []
+for i in range(len(X_items_all)):
+    j = math.log(e[i])
+    comb_e.append(X_items_all[i]*j)
+comb_s = []
+for i in range(len(X_items_all)):
+    j = math.log(s[i])
+    comb_s.append(X_items_all[i]*j)
+
+F_Ye = math.log(0.6) + sum(comb_e)
+F_Ys = math.log(0.4) + sum(comb_s)
+
+print('{:.4f}'.format(F_Ye, 4))
+print('{:.4f}'.format(F_Ys, 4))
+
+print("Q4")
+P_YE_X = 0
+if F_Ys - F_Ye >= 100:
+    P_YE_X = 0
+elif F_Ys - F_Ye <= -100:
+    P_YE_X = 1
+else:
+    P_YE_X = 1/(1+math.e**(F_Ys - F_Ye))
+
+print('{:.4f}'.format(P_YE_X, 4))
+
+# You are free to implement it as you wish!
+# Happy Coding!
