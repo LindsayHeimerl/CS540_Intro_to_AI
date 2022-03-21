@@ -1,0 +1,70 @@
+import pandas as pd
+import sys
+import matplotlib.pyplot as plt
+import numpy as np
+
+#sys.argv[1]
+if __name__=="__main__":
+    df = pd.read_csv(sys.argv[1])
+
+    df.set_index('year').plot()
+    plt.savefig("plot.jpg")
+
+    np_a = df.to_numpy()
+
+    X = []
+    Y = []
+
+    for i in np_a:
+        temp = [1, i[0]]
+        temp = np.array(temp)
+        temp = temp.T
+        X.append(temp)
+        Y.append(i[1])
+
+    X = np.array(X)
+    Y = np.array(Y)
+
+    print("Q3a:")
+    print(X)
+    print("Q3b:")
+    print(Y)
+
+    Z = np.matmul(X.T, X)
+
+    print("Q3c:")
+    print(Z)
+
+    I = np.linalg.inv(Z)
+
+    print("Q3d:")
+    print(I)
+
+    PI = np.matmul(I, X.T)
+
+    print("Q3e:")
+    print(PI)
+
+    hat_beta = np.matmul(PI, Y)
+
+    print("Q3e:")
+    print(hat_beta)
+
+    y_test = hat_beta[0] + hat_beta[1]*2021
+    print("Q4: " + str(y_test))
+
+    sign = []
+
+    if hat_beta[1] < 0:
+        sign.append("<")
+    elif hat_beta[1] > 0:
+        sign.append(">")
+    else:
+        sign.append("=")
+
+    print("Q5a: " + str(sign[0]))
+    print("Q5b: The sign indicates that an increase of years equates to a decrease of ice.")
+
+    x_star = (-hat_beta[0])/hat_beta[1]
+    print("Q6a: " + str(x_star))
+    print("Q6b: This seems like a compelling argument due to the slight negative trend in ice duration on the lake. Since the model slope is slight and negative, there being no ice in 400ish years seems likely")
